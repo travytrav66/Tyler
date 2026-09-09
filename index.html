@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="./support.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js"></script>
 </head>
 <body>
 <div id="tw-loader" style="background:#17140F">
@@ -13,6 +14,7 @@
     <span class="tw-loader-line"></span>
   </div>
 </div>
+<div id="tw-cursor" aria-hidden="true" style="position:fixed;top:0;left:0;width:26px;height:26px;margin:-13px 0 0 -13px;border:1px solid rgba(156,28,44,.6);border-radius:50%;pointer-events:none;z-index:9998;opacity:0;transition:width .3s cubic-bezier(.2,.7,.2,1),height .3s cubic-bezier(.2,.7,.2,1),margin .3s cubic-bezier(.2,.7,.2,1),border-color .3s ease,opacity .3s ease"></div>
 <script>
 (function(){
   var loader = document.getElementById('tw-loader');
@@ -26,6 +28,8 @@
   function hide(){
     if (hidden) return;
     hidden = true;
+    document.documentElement.setAttribute('data-intro-ready', '');
+    window.dispatchEvent(new Event('tw:introready'));
     loader.classList.add('tw-loader-hide');
     setTimeout(function(){ if (loader.parentNode) loader.parentNode.removeChild(loader); }, 750);
   }
@@ -49,6 +53,34 @@
   window.addEventListener('tw:dcready', ready, { once:true });
   window.addEventListener('load', ready, { once:true });
   setTimeout(hide, MIN_DISPLAY_MS + 4000);
+
+  // ---- Custom trailing cursor (fine-pointer desktops only) ----
+  var canHover = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if (canHover && !reduceMotion) {
+    var cursor = document.getElementById('tw-cursor');
+    if (cursor) {
+      document.documentElement.classList.add('tw-cursor-active');
+      var tx = 0, ty = 0, cx = 0, cy = 0, shown = false;
+      document.addEventListener('mousemove', function(e){
+        tx = e.clientX; ty = e.clientY;
+        if (!shown) { shown = true; cx = tx; cy = ty; cursor.style.opacity = '1'; }
+      });
+      (function raf(){
+        cx += (tx - cx) * 0.2;
+        cy += (ty - cy) * 0.2;
+        cursor.style.transform = 'translate(' + cx + 'px,' + cy + 'px)';
+        requestAnimationFrame(raf);
+      })();
+      document.addEventListener('mouseover', function(e){
+        var t = e.target.closest && e.target.closest('a, button, [data-magnetic]');
+        if (t) { cursor.style.width = '50px'; cursor.style.height = '50px'; cursor.style.margin = '-25px 0 0 -25px'; cursor.style.borderColor = 'rgba(156,28,44,.9)'; }
+      });
+      document.addEventListener('mouseout', function(e){
+        var t = e.target.closest && e.target.closest('a, button, [data-magnetic]');
+        if (t) { cursor.style.width = '26px'; cursor.style.height = '26px'; cursor.style.margin = '-13px 0 0 -13px'; cursor.style.borderColor = 'rgba(156,28,44,.6)'; }
+      });
+    }
+  }
 })();
 </script>
 <x-dc>
@@ -66,7 +98,28 @@
   ::selection { background:#9C1C2C; color:#F4EFE6; }
   @keyframes tw-drift { 0%{transform:translateY(0)} 50%{transform:translateY(10px)} 100%{transform:translateY(0)} }
   @keyframes tw-hdr-in { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:none} }
-  [data-header] { animation:tw-hdr-in .9s cubic-bezier(.2,.7,.2,1) .15s both }
+  [data-header] { opacity:0; transform:translateY(-14px) }
+  html[data-intro-ready] [data-header] { animation:tw-hdr-in .9s cubic-bezier(.2,.7,.2,1) .1s forwards }
+
+  /* ---- Hero line-mask reveal (waits for the loader to lift) ---- */
+  .tw-line-mask { display:block; overflow:hidden }
+  .tw-line-inner { display:block; transform:translateY(112%) }
+  html[data-intro-ready] .tw-line-mask:nth-of-type(1) .tw-line-inner { animation:tw-line-in 1s cubic-bezier(.2,.7,.2,1) .1s forwards }
+  html[data-intro-ready] .tw-line-mask:nth-of-type(2) .tw-line-inner { animation:tw-line-in 1s cubic-bezier(.2,.7,.2,1) .25s forwards }
+  html[data-intro-ready] .tw-line-mask:nth-of-type(3) .tw-line-inner { animation:tw-line-in 1s cubic-bezier(.2,.7,.2,1) .4s forwards }
+  @keyframes tw-line-in { to{transform:translateY(0)} }
+
+  /* ---- Custom cursor ---- */
+  .tw-cursor-active, .tw-cursor-active a, .tw-cursor-active button { cursor:none }
+
+  /* ---- Mobile nav ---- */
+  [data-menu-toggle] { display:flex }
+  [data-mobile-menu] { display:flex }
+  @media (min-width:860px) { [data-menu-toggle], [data-mobile-menu] { display:none !important } }
+  html[data-menu-open] { overflow:hidden }
+  html[data-menu-open] [data-menu-toggle] span:nth-child(1) { transform:translateY(7.5px) rotate(45deg) }
+  html[data-menu-open] [data-menu-toggle] span:nth-child(2) { opacity:0 }
+  html[data-menu-open] [data-menu-toggle] span:nth-child(3) { transform:translateY(-7.5px) rotate(-45deg) }
 
   /* ---- Preloader ---- */
   #tw-loader { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:#17140F; transition:opacity .7s cubic-bezier(.4,0,.2,1), visibility 0s linear .7s }
@@ -78,11 +131,13 @@
   @keyframes tw-loader-logo-in { to{opacity:1;transform:scale(1)} }
 
   @media (prefers-reduced-motion: reduce) {
-    [data-header] { animation:none }
+    [data-header] { animation:none; opacity:1; transform:none }
+    .tw-line-inner { transform:none }
     .tw-loader-logo { animation:none; opacity:1; transform:none }
     .tw-loader-pct { animation:none; opacity:1 }
     .tw-loader-line { transition:none; width:90px }
     #tw-loader { transition:opacity .15s linear, visibility 0s linear .15s }
+    [data-mobile-menu] { transition:none }
   }
 
   /* ---- Layout: mobile-first, min-width breakpoints only ---- */
@@ -138,9 +193,21 @@
         <a href="#visit" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,239,230,.82)" style-hover="color:#F4EFE6">Visit</a>
         <a href="#membership" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,239,230,.82)" style-hover="color:#F4EFE6">Membership</a>
       </span>
-      <a href="#wine" data-accent="bg" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;background:#9C1C2C;padding:11px 20px;border-radius:1px;white-space:nowrap" style-hover="opacity:.86;color:#F4EFE6">Shop</a>
+      <a data-magnetic="1" href="#wine" data-accent="bg" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;background:#9C1C2C;padding:11px 20px;border-radius:1px;white-space:nowrap" style-hover="opacity:.86;color:#F4EFE6">Shop</a>
+      <button data-menu-toggle="1" aria-label="Menu" aria-expanded="false" style="align-items:center;justify-content:space-between;width:26px;height:16px;background:transparent;border:0;padding:0;cursor:pointer;z-index:70;flex-direction:column">
+        <span style="display:block;width:100%;height:1px;background:#F4EFE6;transition:transform .35s cubic-bezier(.2,.7,.2,1),opacity .25s ease"></span>
+        <span style="display:block;width:100%;height:1px;background:#F4EFE6;transition:transform .35s cubic-bezier(.2,.7,.2,1),opacity .25s ease"></span>
+        <span style="display:block;width:100%;height:1px;background:#F4EFE6;transition:transform .35s cubic-bezier(.2,.7,.2,1),opacity .25s ease"></span>
+      </button>
     </nav>
   </header>
+  <div data-mobile-menu="1" style="position:fixed;inset:0;z-index:54;background:#17140F;flex-direction:column;align-items:flex-start;justify-content:center;gap:26px;padding:clamp(20px,4vw,54px);transform:translateY(-100%);pointer-events:none;transition:transform .55s cubic-bezier(.2,.7,.2,1)">
+    <a href="#wine" style="font-family:Marcellus,serif;font-size:clamp(30px,8vw,46px);color:#F4EFE6">Wine</a>
+    <a href="#story" style="font-family:Marcellus,serif;font-size:clamp(30px,8vw,46px);color:#F4EFE6">Story</a>
+    <a href="#visit" style="font-family:Marcellus,serif;font-size:clamp(30px,8vw,46px);color:#F4EFE6">Visit</a>
+    <a href="#membership" style="font-family:Marcellus,serif;font-size:clamp(30px,8vw,46px);color:#F4EFE6">Membership</a>
+    <a href="#wine" data-accent="bg" style="margin-top:10px;font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;background:#9C1C2C;padding:15px 26px;border-radius:1px">Shop</a>
+  </div>
 
   <section id="top" data-screen-label="Hero" style="position:relative;min-height:100vh;overflow:hidden;background:#17140F">
     <div data-par="0.16" style="position:absolute;inset:-14% -2%;background:url('uploads/35bf868.jpg') center 40%/cover no-repeat;filter:saturate(.45) contrast(1.05)"></div>
@@ -149,15 +216,19 @@
 
     <div data-g="hero" style="position:relative;box-sizing:border-box;min-height:100vh;align-items:end;align-content:end;gap:clamp(22px,3vw,40px);padding:clamp(130px,18vh,190px) clamp(20px,4vw,54px) clamp(48px,7vh,96px);max-width:1680px;margin:0 auto">
       <div>
-        <h1 data-rev="34" style="margin:0;font-family:Marcellus,serif;font-weight:400;color:#F4EFE6;font-size:clamp(46px,7.4vw,124px);line-height:.92;letter-spacing:-.01em;text-wrap:balance">Wines of the<br>sea, poured<br>at the source.</h1>
+        <h1 style="margin:0;font-family:Marcellus,serif;font-weight:400;color:#F4EFE6;font-size:clamp(46px,7.4vw,124px);line-height:.92;letter-spacing:-.01em;text-wrap:balance">
+          <span class="tw-line-mask"><span class="tw-line-inner">Wines of the</span></span>
+          <span class="tw-line-mask"><span class="tw-line-inner">sea, poured</span></span>
+          <span class="tw-line-mask"><span class="tw-line-inner">at the source.</span></span>
+        </h1>
       </div>
       <div style="display:flex;flex-direction:column;gap:26px;padding-bottom:14px">
-        <p data-rev="20" data-rev-delay="140" style="margin:0;max-width:60ch;font-size:clamp(17px,1.35vw,21px);line-height:1.6;color:rgba(244,239,230,.8)">Where hills glitter with marine sediment and harbor the ocean's winds, Justin Willett makes wines of clarity and poise — structure and nuance favored above all else.</p>
-        <div data-rev="18" data-rev-delay="280" style="display:flex;flex-wrap:wrap;gap:12px">
-          <a href="#visit" data-accent="bg" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;background:#9C1C2C;padding:17px 28px;border-radius:1px" style-hover="opacity:.88;color:#F4EFE6">Book a tasting</a>
-          <a href="#membership" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;border:1px solid rgba(244,239,230,.4);padding:17px 28px;border-radius:1px" style-hover="background:rgba(244,239,230,.1);color:#F4EFE6">Join the allocation</a>
+        <p data-rev="20" data-rev-delay="950" data-rev-intro="1" style="margin:0;max-width:60ch;font-size:clamp(17px,1.35vw,21px);line-height:1.6;color:rgba(244,239,230,.8)">Where hills glitter with marine sediment and harbor the ocean's winds, Justin Willett makes wines of clarity and poise — structure and nuance favored above all else.</p>
+        <div data-rev="18" data-rev-delay="1150" data-rev-intro="1" style="display:flex;flex-wrap:wrap;gap:12px">
+          <a href="#visit" data-accent="bg" data-magnetic="1" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;background:#9C1C2C;padding:17px 28px;border-radius:1px" style-hover="opacity:.88;color:#F4EFE6">Book a tasting</a>
+          <a data-magnetic="1" href="#membership" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;border:1px solid rgba(244,239,230,.4);padding:17px 28px;border-radius:1px" style-hover="background:rgba(244,239,230,.1);color:#F4EFE6">Join the allocation</a>
         </div>
-        <div data-rev="14" data-rev-delay="420" style="display:flex;align-items:center;gap:12px;color:rgba(244,239,230,.55);font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.3em;text-transform:uppercase">
+        <div data-rev="14" data-rev-delay="1350" data-rev-intro="1" style="display:flex;align-items:center;gap:12px;color:rgba(244,239,230,.55);font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.3em;text-transform:uppercase">
           <span style="animation:tw-drift 2.6s ease-in-out infinite">↓</span> Scroll — 41 acres below
         </div>
       </div>
@@ -197,8 +268,8 @@
             </figure>
           </div>
           <div data-rev="16" data-rev-delay="160" style="display:flex;flex-wrap:wrap;gap:12px;padding-top:20px">
-            <a href="#visit" data-accent="bg" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;background:#9C1C2C;padding:15px 26px;border-radius:1px" style-hover="opacity:.88;color:#F4EFE6">Book seated appointment</a>
-            <a href="https://maps.app.goo.gl/vqrs3F4PL9LcWsUA9" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#17140F;border:1px solid rgba(23,20,15,.28);padding:15px 26px;border-radius:1px" style-hover="background:#17140F;color:#F4EFE6">Directions</a>
+            <a data-magnetic="1" href="#visit" data-accent="bg" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;background:#9C1C2C;padding:15px 26px;border-radius:1px" style-hover="opacity:.88;color:#F4EFE6">Book seated appointment</a>
+            <a data-magnetic="1" href="https://maps.app.goo.gl/vqrs3F4PL9LcWsUA9" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#17140F;border:1px solid rgba(23,20,15,.28);padding:15px 26px;border-radius:1px" style-hover="background:#17140F;color:#F4EFE6">Directions</a>
           </div>
         </article>
 
@@ -217,8 +288,8 @@
             <div style="font-family: 'Archivo','Helvetica Neue',Helvetica,sans-serif; font-weight: 400; font-size: 11.5px; letter-spacing: .2em; text-transform: uppercase; color: #6B6156; line-height: 2.1; padding-top: 0px; padding-bottom: 10px">23 E. Canon Perdido St · Bistro menu · Industry &amp; burger nights</div>
           </div>
           <div data-rev="16" data-rev-delay="160" style="display:flex;flex-wrap:wrap;gap:12px;padding-top:20px">
-            <a href="https://www.exploretock.com/tyler-x-lieu-dit/" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#17140F;border:1px solid rgba(23,20,15,.28);padding:15px 26px;border-radius:1px" style-hover="background:#17140F;color:#F4EFE6">Book downtown</a>
-            <a href="https://maps.app.goo.gl/DZMho26CRbfhnMu8A" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#17140F;border:1px solid rgba(23,20,15,.28);padding:15px 26px;border-radius:1px" style-hover="background:#17140F;color:#F4EFE6">Directions</a>
+            <a data-magnetic="1" href="https://www.exploretock.com/tyler-x-lieu-dit/" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#17140F;border:1px solid rgba(23,20,15,.28);padding:15px 26px;border-radius:1px" style-hover="background:#17140F;color:#F4EFE6">Book downtown</a>
+            <a data-magnetic="1" href="https://maps.app.goo.gl/DZMho26CRbfhnMu8A" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#17140F;border:1px solid rgba(23,20,15,.28);padding:15px 26px;border-radius:1px" style-hover="background:#17140F;color:#F4EFE6">Directions</a>
           </div>
         </article>
       </div>
@@ -288,7 +359,7 @@
 
           <article data-rev="24" style="flex:0 0 auto;width:min(78vw,520px);display:flex;flex-direction:column;justify-content:flex-end;gap:20px;padding:0 0 clamp(32px,6vh,64px)">
             <p style="margin:0;font-size:clamp(23px,2.2vw,36px);line-height:1.3;color:#F4EFE6">“Should my children so choose, it will be theirs — for tireless work and endless reward.”</p>
-            <a href="#membership" style="align-self:flex-start;font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;border:1px solid rgba(244,239,230,.4);padding:15px 26px" style-hover="background:rgba(244,239,230,.12);color:#F4EFE6">Follow the vintages</a>
+            <a data-magnetic="1" href="#membership" style="align-self:flex-start;font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;border:1px solid rgba(244,239,230,.4);padding:15px 26px" style-hover="background:rgba(244,239,230,.12);color:#F4EFE6">Follow the vintages</a>
           </article>
         </div>
       </div>
@@ -303,9 +374,9 @@
         </div>
         <p data-rev="20" style="margin:26px 0 0;max-width:46ch;font-size:17.5px;line-height:1.65;color:#3B342C">Gently leaning south and nuanced in its variety of soils, the Mae property commanded an approach to viticulture that rewards patience and longevity — Chardonnay in the lighter western soils, Pinot Noir in the darker, clay-rich ground east and upslope, planted at half the density of Burgundy.</p>
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1px;margin-top:38px;background:rgba(23,20,15,.16)">
-          <div data-rev="16" data-rev-delay="0" style="background:#F4EFE6;padding:22px 20px"><div style="font-family:Marcellus,serif;font-size:clamp(30px,3.4vw,52px);line-height:1">41</div><div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#6B6156;margin-top:8px">Acre estate</div></div>
-          <div data-rev="16" data-rev-delay="80" style="background:#F4EFE6;padding:22px 20px"><div style="font-family:Marcellus,serif;font-size:clamp(30px,3.4vw,52px);line-height:1">28</div><div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#6B6156;margin-top:8px">Acres of vines</div></div>
-          <div data-rev="16" data-rev-delay="160" style="background:#F4EFE6;padding:22px 20px"><div style="font-family:Marcellus,serif;font-size:clamp(30px,3.4vw,52px);line-height:1">2015</div><div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#6B6156;margin-top:8px">Vine material collected</div></div>
+          <div data-rev="16" data-rev-delay="0" style="background:#F4EFE6;padding:22px 20px"><div data-count="41" style="font-family:Marcellus,serif;font-size:clamp(30px,3.4vw,52px);line-height:1">0</div><div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#6B6156;margin-top:8px">Acre estate</div></div>
+          <div data-rev="16" data-rev-delay="80" style="background:#F4EFE6;padding:22px 20px"><div data-count="28" style="font-family:Marcellus,serif;font-size:clamp(30px,3.4vw,52px);line-height:1">0</div><div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#6B6156;margin-top:8px">Acres of vines</div></div>
+          <div data-rev="16" data-rev-delay="160" style="background:#F4EFE6;padding:22px 20px"><div data-count="2015" style="font-family:Marcellus,serif;font-size:clamp(30px,3.4vw,52px);line-height:1">0</div><div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#6B6156;margin-top:8px">Vine material collected</div></div>
           <div data-rev="16" data-rev-delay="240" style="background:#F4EFE6;padding:22px 20px"><div style="font-family:Marcellus,serif;font-size:clamp(30px,3.4vw,52px);line-height:1">Organic</div><div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#6B6156;margin-top:8px">Farming, by hand</div></div>
         </div>
       </div>
@@ -328,7 +399,7 @@
         <div style="display:flex;align-items:baseline;gap:22px">
           <h2 data-rev="26" style="margin:0;font-family:Marcellus,serif;font-weight:400;font-size:clamp(28px,3.6vw,58px);line-height:1;color:#F4EFE6">The current release</h2>
         </div>
-        <a data-rev="14" data-rev-delay="120" href="#wine" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;border:1px solid rgba(244,239,230,.4);padding:15px 26px" style-hover="background:rgba(244,239,230,.12);color:#F4EFE6">Shop all wines</a>
+        <a data-magnetic="1" data-rev="14" data-rev-delay="120" href="#wine" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;border:1px solid rgba(244,239,230,.4);padding:15px 26px" style-hover="background:rgba(244,239,230,.12);color:#F4EFE6">Shop all wines</a>
       </div>
 
       <div style="display:flex;flex-direction:column">
@@ -371,8 +442,8 @@
       <div style="display:flex;flex-direction:column;gap:24px">
         <p data-rev="18" data-rev-delay="140" style="margin:0;max-width:40ch;font-size:18px;line-height:1.62;color:rgba(244,239,230,.82)">Members receive first offering on estate releases, library access, and an invitation to the estate at harvest. The wines are made in small quantity; the allocation is how we keep them with the people who follow them.</p>
         <div data-rev="16" data-rev-delay="280" style="display:flex;flex-wrap:wrap;gap:12px">
-          <a href="#membership" data-accent="bg" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;background:#9C1C2C;padding:17px 28px" style-hover="opacity:.88;color:#F4EFE6">Join the membership</a>
-          <a href="#visit" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;border:1px solid rgba(244,239,230,.4);padding:17px 28px" style-hover="background:rgba(244,239,230,.12);color:#F4EFE6">Visit first</a>
+          <a data-magnetic="1" href="#membership" data-accent="bg" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;background:#9C1C2C;padding:17px 28px" style-hover="opacity:.88;color:#F4EFE6">Join the membership</a>
+          <a data-magnetic="1" href="#visit" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;border:1px solid rgba(244,239,230,.4);padding:17px 28px" style-hover="background:rgba(244,239,230,.12);color:#F4EFE6">Visit first</a>
         </div>
       </div>
     </div>
@@ -389,7 +460,7 @@
           <div data-rev="18" data-rev-delay="120" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11.5px;letter-spacing:.3em;text-transform:uppercase;color:#6B6156">Join our mailing list</div>
           <div style="display:flex;gap:0;margin-top:14px;border-bottom:1px solid rgba(23,20,15,.4);max-width:520px">
             <input type="email" placeholder="Email address" style="flex:1;border:0;background:transparent;padding:14px 2px;font-family:'EB Garamond',serif;font-size:18px;color:#17140F;outline:none">
-            <button data-accent="fg" style="border:0;background:transparent;font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#9C1C2C;cursor:pointer;padding:0 6px" style-hover="opacity:.7">Subscribe</button>
+            <button data-magnetic="1" data-accent="fg" style="border:0;background:transparent;font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#9C1C2C;cursor:pointer;padding:0 6px" style-hover="opacity:.7">Subscribe</button>
           </div>
           <p style="margin:14px 0 0;font-size:15.5px;line-height:1.6;color:#6B6156">Public releases, events, and news from the estate.</p>
         </div>
@@ -411,36 +482,141 @@
 class Component extends DCLogic {
   componentDidMount() {
     window.dispatchEvent(new Event('tw:dcready'));
+    this.reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.io = new IntersectionObserver((es) => es.forEach((e) => {
       if (!e.isIntersecting) return;
       e.target.style.opacity = '1';
       e.target.style.transform = 'none';
       e.target.dataset.revDone = '1';
       this.io.unobserve(e.target);
+      e.target.querySelectorAll('[data-count]').forEach((c) => this.runCounter(c));
     }), { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
     this.tick = this.tick.bind(this);
     this.scan();
     this.timer = setInterval(() => this.scan(), 600);
     this.raf = requestAnimationFrame(this.tick);
+    this.bindIntro();
+    this.bindMenu();
+    this.bindMagnetic();
+    this.initLenis();
   }
   componentDidUpdate() { this.scan(); }
-  componentWillUnmount() { cancelAnimationFrame(this.raf); clearInterval(this.timer); if (this.io) this.io.disconnect(); }
+  componentWillUnmount() {
+    cancelAnimationFrame(this.raf);
+    clearInterval(this.timer);
+    if (this.io) this.io.disconnect();
+    if (this.lenisRaf) cancelAnimationFrame(this.lenisRaf);
+    if (this.lenis) this.lenis.destroy();
+  }
+
+  runCounter(el) {
+    if (el.dataset.counted === '1') return;
+    el.dataset.counted = '1';
+    const target = parseInt(el.dataset.count, 10);
+    if (!isFinite(target)) return;
+    if (this.reduceMotion) { el.textContent = target; return; }
+    const dur = 1400, t0 = performance.now();
+    const step = (t) => {
+      const p = Math.min(1, (t - t0) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(eased * target);
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  bindIntro() {
+    const els = Array.prototype.slice.call(document.querySelectorAll('[data-rev-intro]'));
+    if (!els.length) return;
+    els.forEach((el) => {
+      if (el.dataset.revInit === '1') return;
+      el.dataset.revInit = '1';
+      if (this.reduceMotion) { el.style.opacity = '1'; el.style.transform = 'none'; return; }
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(' + (el.dataset.rev || 26) + 'px)';
+      el.style.transition = 'opacity 1s cubic-bezier(.2,.7,.2,1), transform 1.05s cubic-bezier(.2,.7,.2,1)';
+      el.style.transitionDelay = (el.dataset.revDelay || 0) + 'ms';
+    });
+    const reveal = () => els.forEach((el) => { el.style.opacity = '1'; el.style.transform = 'none'; });
+    if (document.documentElement.hasAttribute('data-intro-ready')) reveal();
+    else window.addEventListener('tw:introready', reveal, { once:true });
+  }
+
+  bindMenu() {
+    const toggle = document.querySelector('[data-menu-toggle]');
+    if (!toggle || toggle.dataset.bound === '1') return;
+    toggle.dataset.bound = '1';
+    const panel = document.querySelector('[data-mobile-menu]');
+    const close = () => {
+      document.documentElement.removeAttribute('data-menu-open');
+      toggle.setAttribute('aria-expanded', 'false');
+      if (panel) { panel.style.transform = 'translateY(-100%)'; panel.style.pointerEvents = 'none'; }
+    };
+    const open = () => {
+      document.documentElement.setAttribute('data-menu-open', '');
+      toggle.setAttribute('aria-expanded', 'true');
+      if (panel) { panel.style.transform = 'translateY(0)'; panel.style.pointerEvents = 'auto'; }
+    };
+    toggle.addEventListener('click', () => {
+      if (document.documentElement.hasAttribute('data-menu-open')) close(); else open();
+    });
+    document.querySelectorAll('[data-mobile-menu] a').forEach((a) => a.addEventListener('click', close));
+  }
+
+  bindMagnetic() {
+    const canHover = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (!canHover || this.reduceMotion) return;
+    document.querySelectorAll('[data-magnetic]').forEach((el) => {
+      if (el.dataset.magBound === '1') return;
+      el.dataset.magBound = '1';
+      el.style.transition = 'transform .5s cubic-bezier(.2,.7,.2,1)';
+      el.addEventListener('mousemove', (e) => {
+        const r = el.getBoundingClientRect();
+        const x = Math.max(-14, Math.min(14, (e.clientX - r.left - r.width / 2) * 0.35));
+        const y = Math.max(-14, Math.min(14, (e.clientY - r.top - r.height / 2) * 0.35));
+        el.style.transition = 'transform .15s ease-out';
+        el.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+      });
+      el.addEventListener('mouseleave', () => {
+        el.style.transition = 'transform .5s cubic-bezier(.2,.7,.2,1)';
+        el.style.transform = 'translate(0,0)';
+      });
+    });
+  }
+
+  initLenis() {
+    if (this.reduceMotion) return;
+    let tries = 0;
+    const start = () => {
+      if (window.Lenis) {
+        this.lenis = new window.Lenis({ duration: 1.1, easing: (t) => 1 - Math.pow(1 - t, 3) });
+        const raf = (time) => { this.lenis.raf(time); this.lenisRaf = requestAnimationFrame(raf); };
+        this.lenisRaf = requestAnimationFrame(raf);
+        return;
+      }
+      if (tries++ < 30) setTimeout(start, 100);
+    };
+    start();
+  }
 
   scan() {
     this.pars = Array.prototype.slice.call(document.querySelectorAll('[data-par]'));
     this.tracks = Array.prototype.slice.call(document.querySelectorAll('[data-track]'));
-    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     document.querySelectorAll('[data-rev]').forEach((el) => {
+      if (el.hasAttribute('data-rev-intro')) return;
       if (el.dataset.revDone === '1') { el.style.opacity = '1'; el.style.transform = 'none'; return; }
       if (el.dataset.revInit === '1') return;
       el.dataset.revInit = '1';
-      if (reduceMotion) { el.style.opacity = '1'; el.style.transform = 'none'; el.dataset.revDone = '1'; return; }
+      if (this.reduceMotion) { el.style.opacity = '1'; el.style.transform = 'none'; el.dataset.revDone = '1'; return; }
       el.style.opacity = '0';
       el.style.transform = 'translateY(' + (el.dataset.rev || 26) + 'px)';
       el.style.transition = 'opacity 1s cubic-bezier(.2,.7,.2,1), transform 1.05s cubic-bezier(.2,.7,.2,1)';
       el.style.transitionDelay = (el.dataset.revDelay || 0) + 'ms';
       this.io.observe(el);
     });
+    this.bindIntro();
+    this.bindMenu();
+    this.bindMagnetic();
     this.theme();
   }
 
