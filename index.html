@@ -6,6 +6,51 @@
 <script src="./support.js"></script>
 </head>
 <body>
+<div id="tw-loader" style="background:#17140F">
+  <div class="tw-loader-mark">
+    <img class="tw-loader-logo" src="uploads/tyler-logo.png" alt="Tyler">
+    <div class="tw-loader-pct" aria-hidden="true">0%</div>
+    <span class="tw-loader-line"></span>
+  </div>
+</div>
+<script>
+(function(){
+  var loader = document.getElementById('tw-loader');
+  if (!loader) return;
+  var pctEl = loader.querySelector('.tw-loader-pct');
+  var barEl = loader.querySelector('.tw-loader-line');
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var MIN_DISPLAY_MS = reduceMotion ? 0 : 3000; // presentational hold — shows for at least this long
+  var start = Date.now();
+  var hidden = false;
+  function hide(){
+    if (hidden) return;
+    hidden = true;
+    loader.classList.add('tw-loader-hide');
+    setTimeout(function(){ if (loader.parentNode) loader.parentNode.removeChild(loader); }, 750);
+  }
+  function ready(){
+    var wait = Math.max(0, MIN_DISPLAY_MS - (Date.now() - start));
+    setTimeout(hide, wait);
+  }
+  function tickCounter(){
+    if (hidden) return;
+    var p = MIN_DISPLAY_MS ? Math.min(1, (Date.now() - start) / MIN_DISPLAY_MS) : 1;
+    if (pctEl) pctEl.textContent = Math.round(p * 100) + '%';
+    if (barEl) barEl.style.width = (p * 90) + 'px';
+    if (p < 1) requestAnimationFrame(tickCounter);
+  }
+  if (reduceMotion) {
+    if (pctEl) pctEl.textContent = '100%';
+    if (barEl) barEl.style.width = '90px';
+  } else {
+    requestAnimationFrame(tickCounter);
+  }
+  window.addEventListener('tw:dcready', ready, { once:true });
+  window.addEventListener('load', ready, { once:true });
+  setTimeout(hide, MIN_DISPLAY_MS + 4000);
+})();
+</script>
 <x-dc>
 <helmet>
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -20,6 +65,25 @@
   a:hover { color:#17140F; }
   ::selection { background:#9C1C2C; color:#F4EFE6; }
   @keyframes tw-drift { 0%{transform:translateY(0)} 50%{transform:translateY(10px)} 100%{transform:translateY(0)} }
+  @keyframes tw-hdr-in { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:none} }
+  [data-header] { animation:tw-hdr-in .9s cubic-bezier(.2,.7,.2,1) .15s both }
+
+  /* ---- Preloader ---- */
+  #tw-loader { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:#17140F; transition:opacity .7s cubic-bezier(.4,0,.2,1), visibility 0s linear .7s }
+  #tw-loader.tw-loader-hide { opacity:0; visibility:hidden; pointer-events:none }
+  .tw-loader-mark { display:flex; flex-direction:column; align-items:center; gap:20px }
+  .tw-loader-logo { height:52px; width:auto; display:block; filter:brightness(0) invert(1) opacity(.94); opacity:0; transform:scale(.92); animation:tw-loader-logo-in 1.1s cubic-bezier(.2,.7,.2,1) forwards }
+  .tw-loader-line { display:block; width:0; height:1px; max-width:90px; background:rgba(244,239,230,.55); transition:width .18s linear }
+  .tw-loader-pct { font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif; font-weight:400; font-size:11px; letter-spacing:.32em; color:rgba(244,239,230,.62); font-variant-numeric:tabular-nums; opacity:0; animation:tw-loader-logo-in 1.1s cubic-bezier(.2,.7,.2,1) .2s forwards }
+  @keyframes tw-loader-logo-in { to{opacity:1;transform:scale(1)} }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-header] { animation:none }
+    .tw-loader-logo { animation:none; opacity:1; transform:none }
+    .tw-loader-pct { animation:none; opacity:1 }
+    .tw-loader-line { transition:none; width:90px }
+    #tw-loader { transition:opacity .15s linear, visibility 0s linear .15s }
+  }
 
   /* ---- Layout: mobile-first, min-width breakpoints only ---- */
   [data-g] { display:grid; }
@@ -85,15 +149,15 @@
 
     <div data-g="hero" style="position:relative;box-sizing:border-box;min-height:100vh;align-items:end;align-content:end;gap:clamp(22px,3vw,40px);padding:clamp(130px,18vh,190px) clamp(20px,4vw,54px) clamp(48px,7vh,96px);max-width:1680px;margin:0 auto">
       <div>
-        <h1 style="margin:0;font-family:Marcellus,serif;font-weight:400;color:#F4EFE6;font-size:clamp(46px,7.4vw,124px);line-height:.92;letter-spacing:-.01em;text-wrap:balance">Wines of the<br>sea, poured<br>at the source.</h1>
+        <h1 data-rev="34" style="margin:0;font-family:Marcellus,serif;font-weight:400;color:#F4EFE6;font-size:clamp(46px,7.4vw,124px);line-height:.92;letter-spacing:-.01em;text-wrap:balance">Wines of the<br>sea, poured<br>at the source.</h1>
       </div>
       <div style="display:flex;flex-direction:column;gap:26px;padding-bottom:14px">
-        <p style="margin:0;max-width:60ch;font-size:clamp(17px,1.35vw,21px);line-height:1.6;color:rgba(244,239,230,.8)">Where hills glitter with marine sediment and harbor the ocean's winds, Justin Willett makes wines of clarity and poise — structure and nuance favored above all else.</p>
-        <div style="display:flex;flex-wrap:wrap;gap:12px">
+        <p data-rev="20" data-rev-delay="140" style="margin:0;max-width:60ch;font-size:clamp(17px,1.35vw,21px);line-height:1.6;color:rgba(244,239,230,.8)">Where hills glitter with marine sediment and harbor the ocean's winds, Justin Willett makes wines of clarity and poise — structure and nuance favored above all else.</p>
+        <div data-rev="18" data-rev-delay="280" style="display:flex;flex-wrap:wrap;gap:12px">
           <a href="#visit" data-accent="bg" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;background:#9C1C2C;padding:17px 28px;border-radius:1px" style-hover="opacity:.88;color:#F4EFE6">Book a tasting</a>
           <a href="#membership" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;border:1px solid rgba(244,239,230,.4);padding:17px 28px;border-radius:1px" style-hover="background:rgba(244,239,230,.1);color:#F4EFE6">Join the allocation</a>
         </div>
-        <div style="display:flex;align-items:center;gap:12px;color:rgba(244,239,230,.55);font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.3em;text-transform:uppercase">
+        <div data-rev="14" data-rev-delay="420" style="display:flex;align-items:center;gap:12px;color:rgba(244,239,230,.55);font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.3em;text-transform:uppercase">
           <span style="animation:tw-drift 2.6s ease-in-out infinite">↓</span> Scroll — 41 acres below
         </div>
       </div>
@@ -132,7 +196,7 @@
               <div data-par="0.08" style="position:absolute;inset:-10% 0;background:url('uploads/mae-estate-inside.jpg') center 55%/cover no-repeat;filter:saturate(.72)"></div>
             </figure>
           </div>
-          <div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:20px">
+          <div data-rev="16" data-rev-delay="160" style="display:flex;flex-wrap:wrap;gap:12px;padding-top:20px">
             <a href="#visit" data-accent="bg" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;background:#9C1C2C;padding:15px 26px;border-radius:1px" style-hover="opacity:.88;color:#F4EFE6">Book seated appointment</a>
             <a href="https://maps.app.goo.gl/vqrs3F4PL9LcWsUA9" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#17140F;border:1px solid rgba(23,20,15,.28);padding:15px 26px;border-radius:1px" style-hover="background:#17140F;color:#F4EFE6">Directions</a>
           </div>
@@ -152,7 +216,7 @@
             <p style="margin: 0; max-width: 52ch; font-size: 17px; line-height: 1.62; color: #3B342C; padding-bottom: 10px">A tasting room and wine bar in the historic Presidio neighborhood, featuring two labels from one winemaker. Inspired by our travels through Europe, it aspires to bring a slice of European wine culture to Santa Barbara — a gathering spot as much as a tasting room.</p>
             <div style="font-family: 'Archivo','Helvetica Neue',Helvetica,sans-serif; font-weight: 400; font-size: 11.5px; letter-spacing: .2em; text-transform: uppercase; color: #6B6156; line-height: 2.1; padding-top: 0px; padding-bottom: 10px">23 E. Canon Perdido St · Bistro menu · Industry &amp; burger nights</div>
           </div>
-          <div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:20px">
+          <div data-rev="16" data-rev-delay="160" style="display:flex;flex-wrap:wrap;gap:12px;padding-top:20px">
             <a href="https://www.exploretock.com/tyler-x-lieu-dit/" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#17140F;border:1px solid rgba(23,20,15,.28);padding:15px 26px;border-radius:1px" style-hover="background:#17140F;color:#F4EFE6">Book downtown</a>
             <a href="https://maps.app.goo.gl/DZMho26CRbfhnMu8A" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#17140F;border:1px solid rgba(23,20,15,.28);padding:15px 26px;border-radius:1px" style-hover="background:#17140F;color:#F4EFE6">Directions</a>
           </div>
@@ -167,62 +231,62 @@
       <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(23,20,15,.94),rgba(23,20,15,.62))"></div>
       <div style="position:absolute;top:clamp(84px,12vh,140px);left:clamp(20px,4vw,54px);right:clamp(20px,4vw,54px);display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid rgba(244,239,230,.18);padding-bottom:18px">
         <div style="display:flex;align-items:baseline;gap:clamp(16px,3vw,44px)">
-          <h2 style="margin:0;font-family:Marcellus,serif;font-weight:400;font-size:clamp(26px,3.4vw,54px);line-height:1;color:#F4EFE6">A vintage bottled is a record of a continual pursuit</h2>
+          <h2 data-rev="28" style="margin:0;font-family:Marcellus,serif;font-weight:400;font-size:clamp(26px,3.4vw,54px);line-height:1;color:#F4EFE6">A vintage bottled is a record of a continual pursuit</h2>
         </div>
-        <span style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:rgba(244,239,230,.5);white-space:nowrap">Scroll → 2005 to now</span>
+        <span data-rev="14" data-rev-delay="120" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:rgba(244,239,230,.5);white-space:nowrap">Scroll → 2005 to now</span>
       </div>
 
       <div style="position:absolute;left:0;right:0;bottom:0;height:66vh;display:flex;align-items:stretch">
         <div data-track-inner="1" style="display:flex;gap:clamp(20px,2.6vw,44px);padding:0 clamp(20px,4vw,54px);will-change:transform">
-          <article style="flex:0 0 auto;width:min(78vw,560px);display:flex;flex-direction:column;justify-content:flex-end;gap:16px;border-left:1px solid rgba(244,239,230,.18);padding:0 0 clamp(32px,6vh,64px) clamp(18px,2vw,30px)">
+          <article data-rev="24" style="flex:0 0 auto;width:min(78vw,560px);display:flex;flex-direction:column;justify-content:flex-end;gap:16px;border-left:1px solid rgba(244,239,230,.18);padding:0 0 clamp(32px,6vh,64px) clamp(18px,2vw,30px)">
             <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:12px;font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.3em;text-transform:uppercase"><span style="color:#8E9471">2005</span><span style="color:rgba(244,239,230,.3)">/</span><span style="color:rgba(244,239,230,.72)">A few barrels</span></div>
             <p style="margin:0;font-size:clamp(21px,1.9vw,31px);line-height:1.25;color:#F4EFE6">A son of Santa Barbara, Justin Tyler Willett began Tyler at the age of 24 with a few barrels tucked in the corner of the Sta. Rita Hills cellar he was working in.</p>
             <p style="margin:0;max-width:44ch;font-size:16.5px;line-height:1.65;color:rgba(244,239,230,.68)">It was there, as assistant winemaker, that he honed his approach to Chardonnay and Pinot Noir.</p>
           </article>
 
-          <article style="flex:0 0 auto;width:min(62vw,380px);align-self:stretch;position:relative;overflow:hidden">
+          <article data-rev="20" style="flex:0 0 auto;width:min(62vw,380px);align-self:stretch;position:relative;overflow:hidden">
             <div data-par="0.06" style="position:absolute;inset:-8% 0;background:url('uploads/justin.jpg') center 30%/cover no-repeat;filter:saturate(.42) contrast(1.04) brightness(.92)"></div>
             <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(23,20,15,.82),transparent 52%)"></div>
             <div style="position:absolute;bottom:0;padding:clamp(18px,2vw,30px);font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:rgba(244,239,230,.86)">Justin Tyler Willett — founder &amp; winemaker</div>
           </article>
 
-          <article style="flex:0 0 auto;width:min(72vw,480px);align-self:stretch;position:relative;overflow:hidden">
+          <article data-rev="20" style="flex:0 0 auto;width:min(72vw,480px);align-self:stretch;position:relative;overflow:hidden">
             <div data-par="0.08" style="position:absolute;inset:-8% 0;background:url('uploads/8755468.jpg') center 40%/cover no-repeat"></div>
             <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(23,20,15,.78),transparent 55%)"></div>
             <div style="position:absolute;bottom:0;padding:clamp(18px,2vw,30px);font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:rgba(244,239,230,.86)">Harvest, before dawn — picked by hand, at night</div>
           </article>
 
-          <article style="flex:0 0 auto;width:min(78vw,560px);display:flex;flex-direction:column;justify-content:flex-end;gap:16px;border-left:1px solid rgba(244,239,230,.18);padding:0 0 clamp(32px,6vh,64px) clamp(18px,2vw,30px)">
+          <article data-rev="24" style="flex:0 0 auto;width:min(78vw,560px);display:flex;flex-direction:column;justify-content:flex-end;gap:16px;border-left:1px solid rgba(244,239,230,.18);padding:0 0 clamp(32px,6vh,64px) clamp(18px,2vw,30px)">
             <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:12px;font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.3em;text-transform:uppercase"><span style="color:#8E9471">Old vines</span><span style="color:rgba(244,239,230,.3)">/</span><span style="color:rgba(244,239,230,.72)">Sanford &amp; Benedict</span></div>
             <p style="margin:0;font-size:clamp(21px,1.9vw,31px);line-height:1.25;color:#F4EFE6">A champion of old vines, Justin has engaged the famed historic vineyards of Santa Barbara — including the region-defining Sanford &amp; Benedict.</p>
             <p style="margin:0;max-width:44ch;font-size:16.5px;line-height:1.65;color:rgba(244,239,230,.68)">Great effort has been made to seek out vineyards of pedigree and establish close collaboration with those who farm them.</p>
           </article>
 
-          <article style="flex:0 0 auto;width:min(78vw,600px);display:flex;flex-direction:column;justify-content:flex-end;gap:16px;border-left:1px solid rgba(244,239,230,.18);padding:0 0 clamp(32px,6vh,64px) clamp(18px,2vw,30px)">
+          <article data-rev="24" style="flex:0 0 auto;width:min(78vw,600px);display:flex;flex-direction:column;justify-content:flex-end;gap:16px;border-left:1px solid rgba(244,239,230,.18);padding:0 0 clamp(32px,6vh,64px) clamp(18px,2vw,30px)">
             <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:12px;font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.3em;text-transform:uppercase"><span style="color:#8E9471">The sign</span><span style="color:rgba(244,239,230,.3)">/</span><span style="color:rgba(244,239,230,.72)">Highway 246</span></div>
             <p style="margin:0;font-size:clamp(21px,1.9vw,31px);line-height:1.25;color:#F4EFE6">Another early harvest-morning's drive, the sun not yet warming the valley, and a “for sale” sign on a small parcel nestled between vineyards I knew deeply.</p>
             <p style="margin:0;max-width:46ch;font-size:16.5px;line-height:1.65;color:rgba(244,239,230,.68)">The timing just wasn't right. And then it was. Nine months later, by a turn of luck, the land was again available — and, without blinking, we made it ours.</p>
           </article>
 
-          <article style="flex:0 0 auto;width:min(72vw,440px);align-self:stretch;position:relative;overflow:hidden">
+          <article data-rev="20" style="flex:0 0 auto;width:min(72vw,440px);align-self:stretch;position:relative;overflow:hidden">
             <div data-par="0.1" style="position:absolute;inset:-8% 0;background:url('uploads/54dc682.jpg') center 45%/cover no-repeat"></div>
             <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(23,20,15,.78),transparent 55%)"></div>
             <div style="position:absolute;bottom:0;padding:clamp(18px,2vw,30px);font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:rgba(244,239,230,.86)">Mae Estate — 28 acres planted, 2017</div>
           </article>
 
-          <article style="flex:0 0 auto;width:min(78vw,560px);display:flex;flex-direction:column;justify-content:flex-end;gap:16px;border-left:1px solid rgba(244,239,230,.18);padding:0 0 clamp(32px,6vh,64px) clamp(18px,2vw,30px)">
+          <article data-rev="24" style="flex:0 0 auto;width:min(78vw,560px);display:flex;flex-direction:column;justify-content:flex-end;gap:16px;border-left:1px solid rgba(244,239,230,.18);padding:0 0 clamp(32px,6vh,64px) clamp(18px,2vw,30px)">
             <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:12px;font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.3em;text-transform:uppercase"><span style="color:#8E9471">In the cellar</span><span style="color:rgba(244,239,230,.3)">/</span><span style="color:rgba(244,239,230,.72)">Minimal hands</span></div>
             <p style="margin:0;font-size:clamp(21px,1.9vw,31px);line-height:1.25;color:#F4EFE6">Farmed organically, handpicked at night, sorted by hand. Native-yeast ferments in large oak vats; bottled, typically, unfined and unfiltered.</p>
             <p style="margin:0;max-width:44ch;font-size:16.5px;line-height:1.65;color:rgba(244,239,230,.68)">New oak varies by vineyard, vine age and vintage — used only to complement, never to overshadow.</p>
           </article>
 
-          <article style="flex:0 0 auto;width:min(78vw,540px);align-self:stretch;position:relative;overflow:hidden">
+          <article data-rev="20" style="flex:0 0 auto;width:min(78vw,540px);align-self:stretch;position:relative;overflow:hidden">
             <div data-par="0.09" style="position:absolute;inset:-8% 0;background:url('uploads/in-the-barrels.jpg') center 50%/cover no-repeat"></div>
             <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(23,20,15,.78),transparent 55%)"></div>
             <div style="position:absolute;bottom:0;padding:clamp(18px,2vw,30px);font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:rgba(244,239,230,.86)">Barrel to glass — tasting through the cellar, lot by lot</div>
           </article>
 
-          <article style="flex:0 0 auto;width:min(78vw,520px);display:flex;flex-direction:column;justify-content:flex-end;gap:20px;padding:0 0 clamp(32px,6vh,64px)">
+          <article data-rev="24" style="flex:0 0 auto;width:min(78vw,520px);display:flex;flex-direction:column;justify-content:flex-end;gap:20px;padding:0 0 clamp(32px,6vh,64px)">
             <p style="margin:0;font-size:clamp(23px,2.2vw,36px);line-height:1.3;color:#F4EFE6">“Should my children so choose, it will be theirs — for tireless work and endless reward.”</p>
             <a href="#membership" style="align-self:flex-start;font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;border:1px solid rgba(244,239,230,.4);padding:15px 26px" style-hover="background:rgba(244,239,230,.12);color:#F4EFE6">Follow the vintages</a>
           </article>
@@ -235,14 +299,14 @@
     <div data-g="terroir" style="max-width:1680px;margin:0 auto;gap:clamp(34px,5vw,90px);align-items:start">
       <div data-sticky="1" style="top:120px">
         <div style="display:flex;align-items:baseline;gap:22px">
-          <h2 style="margin:0;font-family:Marcellus,serif;font-weight:400;font-size:clamp(28px,3.6vw,58px);line-height:1.02">Marine soils,<br>a long mild season,<br>cool ocean wind.</h2>
+          <h2 data-rev="26" style="margin:0;font-family:Marcellus,serif;font-weight:400;font-size:clamp(28px,3.6vw,58px);line-height:1.02">Marine soils,<br>a long mild season,<br>cool ocean wind.</h2>
         </div>
         <p data-rev="20" style="margin:26px 0 0;max-width:46ch;font-size:17.5px;line-height:1.65;color:#3B342C">Gently leaning south and nuanced in its variety of soils, the Mae property commanded an approach to viticulture that rewards patience and longevity — Chardonnay in the lighter western soils, Pinot Noir in the darker, clay-rich ground east and upslope, planted at half the density of Burgundy.</p>
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1px;margin-top:38px;background:rgba(23,20,15,.16)">
-          <div style="background:#F4EFE6;padding:22px 20px"><div style="font-family:Marcellus,serif;font-size:clamp(30px,3.4vw,52px);line-height:1">41</div><div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#6B6156;margin-top:8px">Acre estate</div></div>
-          <div style="background:#F4EFE6;padding:22px 20px"><div style="font-family:Marcellus,serif;font-size:clamp(30px,3.4vw,52px);line-height:1">28</div><div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#6B6156;margin-top:8px">Acres of vines</div></div>
-          <div style="background:#F4EFE6;padding:22px 20px"><div style="font-family:Marcellus,serif;font-size:clamp(30px,3.4vw,52px);line-height:1">2015</div><div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#6B6156;margin-top:8px">Vine material collected</div></div>
-          <div style="background:#F4EFE6;padding:22px 20px"><div style="font-family:Marcellus,serif;font-size:clamp(30px,3.4vw,52px);line-height:1">Organic</div><div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#6B6156;margin-top:8px">Farming, by hand</div></div>
+          <div data-rev="16" data-rev-delay="0" style="background:#F4EFE6;padding:22px 20px"><div style="font-family:Marcellus,serif;font-size:clamp(30px,3.4vw,52px);line-height:1">41</div><div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#6B6156;margin-top:8px">Acre estate</div></div>
+          <div data-rev="16" data-rev-delay="80" style="background:#F4EFE6;padding:22px 20px"><div style="font-family:Marcellus,serif;font-size:clamp(30px,3.4vw,52px);line-height:1">28</div><div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#6B6156;margin-top:8px">Acres of vines</div></div>
+          <div data-rev="16" data-rev-delay="160" style="background:#F4EFE6;padding:22px 20px"><div style="font-family:Marcellus,serif;font-size:clamp(30px,3.4vw,52px);line-height:1">2015</div><div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#6B6156;margin-top:8px">Vine material collected</div></div>
+          <div data-rev="16" data-rev-delay="240" style="background:#F4EFE6;padding:22px 20px"><div style="font-family:Marcellus,serif;font-size:clamp(30px,3.4vw,52px);line-height:1">Organic</div><div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#6B6156;margin-top:8px">Farming, by hand</div></div>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:clamp(20px,3vw,44px)">
@@ -262,9 +326,9 @@
     <div style="max-width:1680px;margin:0 auto">
       <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:24px;border-bottom:1px solid rgba(244,239,230,.2);padding-bottom:22px">
         <div style="display:flex;align-items:baseline;gap:22px">
-          <h2 style="margin:0;font-family:Marcellus,serif;font-weight:400;font-size:clamp(28px,3.6vw,58px);line-height:1;color:#F4EFE6">The current release</h2>
+          <h2 data-rev="26" style="margin:0;font-family:Marcellus,serif;font-weight:400;font-size:clamp(28px,3.6vw,58px);line-height:1;color:#F4EFE6">The current release</h2>
         </div>
-        <a href="#wine" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;border:1px solid rgba(244,239,230,.4);padding:15px 26px" style-hover="background:rgba(244,239,230,.12);color:#F4EFE6">Shop all wines</a>
+        <a data-rev="14" data-rev-delay="120" href="#wine" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;border:1px solid rgba(244,239,230,.4);padding:15px 26px" style-hover="background:rgba(244,239,230,.12);color:#F4EFE6">Shop all wines</a>
       </div>
 
       <div style="display:flex;flex-direction:column">
@@ -301,12 +365,12 @@
     <div style="position:absolute;inset:0;background:linear-gradient(120deg,rgba(23,20,15,.92),rgba(23,20,15,.45))"></div>
     <div data-g="member" style="position:relative;max-width:1680px;margin:0 auto;padding:clamp(90px,14vh,190px) clamp(20px,4vw,54px);gap:clamp(30px,5vw,80px);align-items:end">
       <div>
-        <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:12px;font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.3em;text-transform:uppercase"><span style="color:#8E9471">Favored</span><span style="color:rgba(244,239,230,.3)">/</span><span style="color:rgba(244,239,230,.72)">Allocation</span></div>
+        <div data-rev="12" style="display:flex;align-items:baseline;flex-wrap:wrap;gap:12px;font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.3em;text-transform:uppercase"><span style="color:#8E9471">Favored</span><span style="color:rgba(244,239,230,.3)">/</span><span style="color:rgba(244,239,230,.72)">Allocation</span></div>
         <h2 data-rev="30" style="margin:20px 0 0;font-family:Marcellus,serif;font-weight:400;font-size:clamp(34px,5.6vw,96px);line-height:.98;color:#F4EFE6">Guaranteed access<br>to every wine<br>we make.</h2>
       </div>
       <div style="display:flex;flex-direction:column;gap:24px">
-        <p style="margin:0;max-width:40ch;font-size:18px;line-height:1.62;color:rgba(244,239,230,.82)">Members receive first offering on estate releases, library access, and an invitation to the estate at harvest. The wines are made in small quantity; the allocation is how we keep them with the people who follow them.</p>
-        <div style="display:flex;flex-wrap:wrap;gap:12px">
+        <p data-rev="18" data-rev-delay="140" style="margin:0;max-width:40ch;font-size:18px;line-height:1.62;color:rgba(244,239,230,.82)">Members receive first offering on estate releases, library access, and an invitation to the estate at harvest. The wines are made in small quantity; the allocation is how we keep them with the people who follow them.</p>
+        <div data-rev="16" data-rev-delay="280" style="display:flex;flex-wrap:wrap;gap:12px">
           <a href="#membership" data-accent="bg" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;background:#9C1C2C;padding:17px 28px" style-hover="opacity:.88;color:#F4EFE6">Join the membership</a>
           <a href="#visit" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#F4EFE6;border:1px solid rgba(244,239,230,.4);padding:17px 28px" style-hover="background:rgba(244,239,230,.12);color:#F4EFE6">Visit first</a>
         </div>
@@ -317,12 +381,12 @@
   <footer data-screen-label="Footer" style="background:#F4EFE6;color:#17140F;padding:clamp(60px,9vh,110px) clamp(20px,4vw,54px) 36px">
     <div style="max-width:1680px;margin:0 auto">
       <div data-g="foot-top" style="gap:clamp(34px,5vw,80px);align-items:end;border-bottom:1px solid rgba(23,20,15,.18);padding-bottom:44px">
-        <div>
+        <div data-rev="18">
           <img src="uploads/tyler-logo.png" alt="Tyler Winery" style="height:96px;width:auto;display:block">
           <p style="margin:20px 0 0;max-width:34ch;font-size:17px;line-height:1.6;color:#3B342C">Wines of the sea since 2005. Sta. Rita Hills, Santa Barbara County.</p>
         </div>
         <div>
-          <div style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11.5px;letter-spacing:.3em;text-transform:uppercase;color:#6B6156">Join our mailing list</div>
+          <div data-rev="18" data-rev-delay="120" style="font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11.5px;letter-spacing:.3em;text-transform:uppercase;color:#6B6156">Join our mailing list</div>
           <div style="display:flex;gap:0;margin-top:14px;border-bottom:1px solid rgba(23,20,15,.4);max-width:520px">
             <input type="email" placeholder="Email address" style="flex:1;border:0;background:transparent;padding:14px 2px;font-family:'EB Garamond',serif;font-size:18px;color:#17140F;outline:none">
             <button data-accent="fg" style="border:0;background:transparent;font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#9C1C2C;cursor:pointer;padding:0 6px" style-hover="opacity:.7">Subscribe</button>
@@ -330,13 +394,13 @@
           <p style="margin:14px 0 0;font-size:15.5px;line-height:1.6;color:#6B6156">Public releases, events, and news from the estate.</p>
         </div>
       </div>
-      <div data-g="foot-links" style="gap:24px;padding:32px 0 0;font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:#6B6156;line-height:2.2">
+      <div data-rev="16" data-rev-delay="80" data-g="foot-links" style="gap:24px;padding:32px 0 0;font-family:'Archivo','Helvetica Neue',Helvetica,sans-serif;font-weight:400;font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:#6B6156;line-height:2.2">
         <div><a href="#wine" style="color:#6B6156" style-hover="color:#17140F">Wine</a><br><a href="#story" style="color:#6B6156" style-hover="color:#17140F">Story</a><br><a href="#visit" style="color:#6B6156" style-hover="color:#17140F">Visit</a><br><a href="#membership" style="color:#6B6156" style-hover="color:#17140F">Membership</a></div>
         <div>Mae Estate<br>4805 E Hwy 246<br>Lompoc, CA 93436<br>By appointment</div>
         <div>Tyler x Lieu Dit<br>23 E. Canon Perdido St<br>Santa Barbara, CA<br>Walk-ins welcome</div>
         <div><a href="mailto:gabe@tylerwinery.com" style="color:#6B6156" style-hover="color:#17140F">gabe@tylerwinery.com</a><br>(805) 225 3395<br><a href="https://www.lieuditwinery.com" style="color:#6B6156" style-hover="color:#17140F">LieuDitWinery.com</a><br>Trade &amp; distribution</div>
       </div>
-      <div style="padding-top:34px;font-size:14px;color:#8A8073">Concept design · Tyler Winery homepage</div>
+      <div data-rev="10" style="padding-top:34px;font-size:14px;color:#8A8073">Concept design · Tyler Winery homepage</div>
     </div>
   </footer>
 
@@ -346,6 +410,7 @@
 <script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#9C1C2C&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#9C1C2C&quot;,&quot;#7A1520&quot;,&quot;#5E4C22&quot;,&quot;#2F4A3A&quot;],&quot;section&quot;:&quot;Brand&quot;},&quot;headlineFont&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Marcellus&quot;,&quot;options&quot;:[&quot;Marcellus&quot;,&quot;Cinzel&quot;,&quot;Forum&quot;,&quot;Libre Caslon Display&quot;,&quot;Newsreader&quot;,&quot;Spectral&quot;,&quot;Gilda Display&quot;,&quot;Cormorant Unicase&quot;,&quot;Antic Didone&quot;,&quot;Archivo Caps&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Type&quot;},&quot;parallax&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0,&quot;max&quot;:1.8,&quot;step&quot;:0.1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Motion&quot;},&quot;grain&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Brand&quot;}}">
 class Component extends DCLogic {
   componentDidMount() {
+    window.dispatchEvent(new Event('tw:dcready'));
     this.io = new IntersectionObserver((es) => es.forEach((e) => {
       if (!e.isIntersecting) return;
       e.target.style.opacity = '1';
@@ -364,10 +429,12 @@ class Component extends DCLogic {
   scan() {
     this.pars = Array.prototype.slice.call(document.querySelectorAll('[data-par]'));
     this.tracks = Array.prototype.slice.call(document.querySelectorAll('[data-track]'));
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     document.querySelectorAll('[data-rev]').forEach((el) => {
       if (el.dataset.revDone === '1') { el.style.opacity = '1'; el.style.transform = 'none'; return; }
       if (el.dataset.revInit === '1') return;
       el.dataset.revInit = '1';
+      if (reduceMotion) { el.style.opacity = '1'; el.style.transform = 'none'; el.dataset.revDone = '1'; return; }
       el.style.opacity = '0';
       el.style.transform = 'translateY(' + (el.dataset.rev || 26) + 'px)';
       el.style.transition = 'opacity 1s cubic-bezier(.2,.7,.2,1), transform 1.05s cubic-bezier(.2,.7,.2,1)';
